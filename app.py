@@ -9,7 +9,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from psycopg.rows import namedtuple_row
-from psycopg_pool import ConnectionPool
+from psycopg_pool import ConnectionPool 
 
 dictConfig(
     {
@@ -44,7 +44,7 @@ limiter = Limiter(
 
 # Use the DATABASE_URL environment variable if it exists, otherwise use the default.
 # Use the format postgres://username:password@hostname/database_name to connect to the database.
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://bank:bank@postgres/bank")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://db:db@postgres/db")
 
 pool = ConnectionPool(
     conninfo=DATABASE_URL,
@@ -55,7 +55,7 @@ pool = ConnectionPool(
     min_size=4,
     max_size=10,
     open=True,
-    # check=ConnectionPool.check_connection,
+    #check=ConnectionPool.check_connection,
     name="postgres_pool",
     timeout=5,
 )
@@ -71,81 +71,241 @@ def is_decimal(s):
 
 
 @app.route("/", methods=("GET",))
-@app.route("/accounts", methods=("GET",))
+@app.route("/players", methods=("GET",))
 @limiter.limit("1 per second")
-def account_index():
+def player_index():
     """Show all the accounts, most recent first."""
 
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            accounts = cur.execute(
+            players = cur.execute(
                 """
-                SELECT account_number, branch_name, balance
-                FROM account
-                ORDER BY account_number DESC;
+                SELECT
+                  *
+                FROM
+                  players_index_view
+                LIMIT
+                  20;
                 """,
                 {},
             ).fetchall()
             log.debug(f"Found {cur.rowcount} rows.")
 
-    return render_template("account/index.html", accounts=accounts)
+    return render_template("players/index.html", players=players)
+                                                                                                                           
 
-
-@app.route("/accounts/<account_number>/update", methods=("GET",))
+@app.route("/players/<player_api_id>/update", methods=("GET",))
 @limiter.limit("1 per second")
-def account_update_view(account_number):
+def player_update_view(player_api_id):
     """Show the page to update the account balance."""
 
     with pool.connection() as conn:
         with conn.cursor() as cur:
-            account = cur.execute(
+            player = cur.execute(
                 """
-                SELECT account_number, branch_name, balance
-                FROM account
-                WHERE account_number = %(account_number)s;
+                SELECT pa.*, p.player_name
+                FROM player_attributes pa
+                JOIN Player p ON pa.player_api_id = p.player_api_id
+                WHERE pa.player_api_id = %(player_api_id)s 
+                ORDER BY pa.date DESC
+                LIMIT 1;
                 """,
-                {"account_number": account_number},
+                {"player_api_id": player_api_id},
             ).fetchone()
             log.debug(f"Found {cur.rowcount} rows.")
 
     # At the end of the `connection()` context, the transaction is committed
     # or rolled back, and the connection returned to the pool.
 
-    return render_template("account/update.html", account=account)
+    return render_template("players/update.html", player=player)
 
 
-@app.route("/accounts/<account_number>/update", methods=("POST",))
-def account_update_save(account_number):
-    """Update the account balance."""
+@app.route("/players/<player_api_id>/update", methods=("POST",))
+def player_update_save(player_api_id):
+    """Insert new player attributes."""
 
+    # Extract all attributes from the form
+    date = request.form["date"]
+    overall_rating = request.form["overall_rating"]
+    potential = request.form["potential"]
+    preferred_foot = request.form["preferred_foot"]
+    attacking_work_rate = request.form["attacking_work_rate"]
+    defensive_work_rate = request.form["defensive_work_rate"]
+    crossing = request.form["crossing"]
+    finishing = request.form["finishing"]
+    heading_accuracy = request.form["heading_accuracy"]
+    short_passing = request.form["short_passing"]
+    volleys = request.form["volleys"]
+    dribbling = request.form["dribbling"]
+    curve = request.form["curve"]
+    free_kick_accuracy = request.form["free_kick_accuracy"]
+    long_passing = request.form["long_passing"]
+    ball_control = request.form["ball_control"]
+    acceleration = request.form["acceleration"]
+    sprint_speed = request.form["sprint_speed"]
+    agility = request.form["agility"]
+    reactions = request.form["reactions"]
     balance = request.form["balance"]
+    shot_power = request.form["shot_power"]
+    jumping = request.form["jumping"]
+    stamina = request.form["stamina"]
+    strength = request.form["strength"]
+    long_shots = request.form["long_shots"]
+    aggression = request.form["aggression"]
+    interceptions = request.form["interceptions"]
+    positioning = request.form["positioning"]
+    vision = request.form["vision"]
+    penalties = request.form["penalties"]
+    marking = request.form["marking"]
+    standing_tackle = request.form["standing_tackle"]
+    sliding_tackle = request.form["sliding_tackle"]
+    gk_diving = request.form["gk_diving"]
+    gk_handling = request.form["gk_handling"]
+    gk_kicking = request.form["gk_kicking"]
+    gk_positioning = request.form["gk_positioning"]
+    gk_reflexes = request.form["gk_reflexes"]
 
-    if not balance:
-        raise ValueError("Balance is required.")
+    # Validation for required fields
+    if not date:
+        raise ValueError("date is required.")
+    
 
-    if not is_decimal(balance):
-        raise ValueError("Balance is required to be decimal.")
-
-    if Decimal(balance) < 0:
-        raise ValueError("Balance is required to be positive.")
-
+    # Insert all attributes into the database
     with pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE account
-                SET balance = %(balance)s
-                WHERE account_number = %(account_number)s;
+                INSERT INTO Player_Attributes (
+                    player_api_id,
+                    date,
+                    overall_rating,
+                    potential,
+                    preferred_foot,
+                    attacking_work_rate,
+                    defensive_work_rate,
+                    crossing,
+                    finishing,
+                    heading_accuracy,
+                    short_passing,
+                    volleys,
+                    dribbling,
+                    curve,
+                    free_kick_accuracy,
+                    long_passing,
+                    ball_control,
+                    acceleration,
+                    sprint_speed,
+                    agility,
+                    reactions,
+                    balance,
+                    shot_power,
+                    jumping,
+                    stamina,
+                    strength,
+                    long_shots,
+                    aggression,
+                    interceptions,
+                    positioning,
+                    vision,
+                    penalties,
+                    marking,
+                    standing_tackle,
+                    sliding_tackle,
+                    gk_diving,
+                    gk_handling,
+                    gk_kicking,
+                    gk_positioning,
+                    gk_reflexes
+                )
+                VALUES (
+                    %(player_api_id)s,
+                    %(date)s,
+                    %(overall_rating)s,
+                    %(potential)s,
+                    %(preferred_foot)s,
+                    %(attacking_work_rate)s,
+                    %(defensive_work_rate)s,
+                    %(crossing)s,
+                    %(finishing)s,
+                    %(heading_accuracy)s,
+                    %(short_passing)s,
+                    %(volleys)s,
+                    %(dribbling)s,
+                    %(curve)s,
+                    %(free_kick_accuracy)s,
+                    %(long_passing)s,
+                    %(ball_control)s,
+                    %(acceleration)s,
+                    %(sprint_speed)s,
+                    %(agility)s,
+                    %(reactions)s,
+                    %(balance)s,
+                    %(shot_power)s,
+                    %(jumping)s,
+                    %(stamina)s,
+                    %(strength)s,
+                    %(long_shots)s,
+                    %(aggression)s,
+                    %(interceptions)s,
+                    %(positioning)s,
+                    %(vision)s,
+                    %(penalties)s,
+                    %(marking)s,
+                    %(standing_tackle)s,
+                    %(sliding_tackle)s,
+                    %(gk_diving)s,
+                    %(gk_handling)s,
+                    %(gk_kicking)s,
+                    %(gk_positioning)s,
+                    %(gk_reflexes)s
+                );
                 """,
-                {"account_number": account_number, "balance": balance},
+                {
+                    "player_api_id": player_api_id,
+                    "date": date,
+                    "overall_rating": overall_rating,
+                    "potential": potential,
+                    "preferred_foot": preferred_foot,
+                    "attacking_work_rate": attacking_work_rate,
+                    "defensive_work_rate": defensive_work_rate,
+                    "crossing": crossing,
+                    "finishing": finishing,
+                    "heading_accuracy": heading_accuracy,
+                    "short_passing": short_passing,
+                    "volleys": volleys,
+                    "dribbling": dribbling,
+                    "curve": curve,
+                    "free_kick_accuracy": free_kick_accuracy,
+                    "long_passing": long_passing,
+                    "ball_control": ball_control,
+                    "acceleration": acceleration,
+                    "sprint_speed": sprint_speed,
+                    "agility": agility,
+                    "reactions": reactions,
+                    "balance": balance,
+                    "shot_power": shot_power,
+                    "jumping": jumping,
+                    "stamina": stamina,
+                    "strength": strength,
+                    "long_shots": long_shots,
+                    "aggression": aggression,
+                    "interceptions": interceptions,
+                    "positioning": positioning,
+                    "vision": vision,
+                    "penalties": penalties,
+                    "marking": marking,
+                    "standing_tackle": standing_tackle,
+                    "sliding_tackle": sliding_tackle,
+                    "gk_diving": gk_diving,
+                    "gk_handling": gk_handling,
+                    "gk_kicking": gk_kicking,
+                    "gk_positioning": gk_positioning,
+                    "gk_reflexes": gk_reflexes,
+                },
             )
-            # The result of this statement is persisted immediately by the database
-            # because the connection is in autocommit mode.
 
-    # The connection is returned to the pool at the end of the `connection()` context but,
-    # because it is not in a transaction state, no COMMIT is executed.
+    return redirect(url_for("player_index"))
 
-    return redirect(url_for("account_index"))
 
 
 @app.route("/accounts/<account_number>/delete", methods=("POST",))
@@ -184,7 +344,7 @@ def account_delete(account_number):
 @limiter.exempt
 def ping():
     log.debug("ping!")
-    return jsonify({"message": "mensagem alterada 123!", "status": "success"})
+    return jsonify({"message": "mensagem alterada 12357890!", "status": "success"})
 
 
 if __name__ == "__main__":
