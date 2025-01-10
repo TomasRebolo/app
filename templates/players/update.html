@@ -4,25 +4,32 @@
 {% endblock header %}
 {% block content %}
     <form action="{{ url_for('player_update_save', player_api_id=player.player_api_id) }}" method="POST"> 
+            <input id="player_api_id" 
+                    name="player_api_id" 
+                    type="hidden" value="{{ player['player_api_id'] }}" 
+                    readonly />
+            <input id="player_fifa_api_id" 
+                    name="player_fifa_api_id" 
+                    type="hidden" value="{{ player['player_fifa_api_id'] }}" 
+                    readonly />
 
         <fieldset>
             <legend>General Information</legend>
-            <label for="player_api_id">Player ID</label>
-            <input id="player_api_id" 
-                    name="player_api_id" 
-                    type="password" value="{{ player['player_api_id'] }}" 
-                    disabled />
-
             <label for="date">Date</label>
             <input id="date" name="date" 
                     type="text" value="{{ request.form['date'] or player['date'] }}" 
                     disabled />
 
             <label for="preferred_foot">Preferred Foot</label>
-            <input name="preferred_foot"
+                <input 
                     id="preferred_foot" 
-                    type="text" value="{{ request.form['preferred_foot'] or player['preferred_foot'] }}" 
-                    required />
+                    name="preferred_foot" 
+                    type="text" 
+                    value="{{ request.form['preferred_foot'] or player['preferred_foot'] }}" 
+                    required 
+                    pattern="^[^\d]*$" 
+                    title="Input must not contain numbers."
+                />
 
             <label for="attacking_work_rate">Attacking Work Rate</label>
             <input name="attacking_work_rate"
@@ -309,10 +316,6 @@
 
      <hr /> 
     
-    <form action="{{ url_for('account_delete', account_number=player['player_api_id']) }}" 
-          method="post">
-        <button class="danger" 
-                type="submit" 
-                onclick="return confirm('Are you sure?');">Delete</button>
+    
     </form>
 {% endblock content %}
