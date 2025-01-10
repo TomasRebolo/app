@@ -12,15 +12,17 @@
             <header>
                 <div>
                     <h1>{{ player['player_name'] }}</h1>
-                    <div class="about">in {{ player['date'] }}</div>
+                    <div class="about">on {{ player['date'] }}</div>
                 </div>
-                <a class="action"
-                   href="{{ url_for('player_update_view', player_api_id=player['player_api_id']) }}">Edit</a>
+                <form action="{{ url_for('player_update_view') }}" 
+                    method="POST" 
+                    style="display:inline;">
+                    <input type="hidden" 
+                    name="player_api_id" value="{{ player['player_api_id'] }}">
+                    <button type="submit" class="action">Edit</button>
+                </form>
             </header>
-
         </article>
         {% if not loop.last %}<hr />{% endif %}
     {% endfor %}
-{% endblock content %}
-
-
+{% endblock content %}
